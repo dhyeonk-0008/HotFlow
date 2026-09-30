@@ -1,0 +1,89 @@
+# Unified graph architecture: anchor nodes in IPA graph (no cross-attention)
+# Based on PepFlow's learn_angle.yaml with hotspot-specific additions.
+
+model:
+  encoder:
+    node_embed_size: 128
+    edge_embed_size: 64
+    ipa:
+      c_s: 128
+      c_z: 64
+      c_hidden: 128
+      no_heads: 8
+      no_qk_points: 8
+      no_v_points: 12
+      seq_tfmr_num_heads: 4
+      seq_tfmr_num_layers: 2
+      num_blocks: 6
+      stop_grad: False
+  interpolant:
+    min_t: 1.e-2
+    t_normalization_clip: 0.9
+    sample_sequence: True
+    sample_structure: True
+    rots:
+      train_schedule: linear
+      sample_schedule: exp
+      exp_rate: 10
+    trans:
+      train_schedule: linear
+      sample_schedule: linear
+      sigma: 1.0
+    seqs:
+      num_classes: 20
+      simplex_value: 5.0
+    sampling:
+      num_timesteps: 100
+    self_condition: False
+
+# Unified-specific (no cross-attention params needed)
+hotspot:
+  num_anchors: 5
+  contact_distance_cutoff: 4.0
+  contact_loss_target: 4.0
+  contact_loss_margin: 2.0
+  hotspot_dropout_p: 0.1
+
+train:
+  loss_weights:
+    trans_loss: 0.5
+    rot_loss: 0.5
+    bb_atom_loss: 0.25
+    seqs_loss: 1.0
+    angle_loss: 1.0
+    torsion_loss: 0.5
+    contact_loss: 0.1
+  max_iters: 4000000
+  val_freq: 20000
+  batch_size: 8
+  grad_accum_steps: 1
+  seed: 114514
+  max_grad_norm: 100.0
+  warmup_iters: 1000
+  optimizer:
+    type: adam
+    lr: 5.e-4
+    weight_decay: 0.0
+    beta1: 0.9
+    beta2: 0.999
+  scheduler:
+    type: plateau
+    factor: 0.8
+    patience: 10
+    min_lr: 5.e-6
+
+pretrained:
+  checkpoint: ./PepFlowww/model2.pt
+  strict: False
+
+dataset:
+  train:
+    structure_dir: ./data/raw/pepbdb/pepbdb/
+    dataset_dir: ./data/processed/pepbdb/
+    name: pep_pocket_train
+    reset: False
+  val:
+    structure_dir: ./data/raw/pepbdb_test/
+    dataset_dir: ./data/processed/pepbdb/
+    name: pep_pocket_test
+    reset: False

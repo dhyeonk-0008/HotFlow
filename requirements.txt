@@ -1,0 +1,57 @@
+# HotFlow - Python 3.10.20 (conda)
+#
+# 1) Create conda env:
+#   conda create -n hotflow python=3.10 -y
+#   conda activate hotflow
+#
+# 2) PyTorch (CUDA 12.4) — install first:
+#   pip install torch==2.6.0+cu124 torchvision==0.21.0+cu124 \
+#       --index-url https://download.pytorch.org/whl/cu124
+#   pip install torch_scatter==2.1.2+pt26cu124 \
+#       -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
+#
+# 3) PyRosetta (requires license):
+#   pip install pyrosetta-installer && python -c "import pyrosetta_installer; pyrosetta_installer.install_pyrosetta()"
+#
+# 4) Install remaining deps:
+#   pip install -r requirements.txt
+
+# Core scientific
+biopython==1.87
+easydict==1.13
+einops==0.8.2
+lmdb==2.2.0
+numpy==2.2.6
+omegaconf==2.3.0
+pandas==2.2.3
+scipy>=1.15
+tqdm==4.67.3
+PyYAML==6.0.3
+sympy==1.13.1
+
+# ML / analysis
+scikit-learn==1.7.2
+statsmodels>=0.14
+tmtools==0.3.0
+
+# Logging & tracking
+wandb==0.17.0
+
+# Structure visualization
+matplotlib>=3.10
+seaborn>=0.13
+py3Dmol>=2.4
+pillow>=12.0
+
+# Testing
+pytest>=8.0
+
+# Misc
+click==8.3.2
+joblib==1.5.3
+requests==2.33.1
+protobuf>=3.19,<5
+pydantic==2.12.5
+antlr4-python3-runtime==4.9.3
+beautifulsoup4>=4.12
+wrapt>=2.0

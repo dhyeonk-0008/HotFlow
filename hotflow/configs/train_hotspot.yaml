@@ -1,0 +1,45 @@
+# HotspotPredictor training config
+
+model:
+  type: se3   # 'plain' or 'se3'
+  d_model: 128
+  n_encoder_layers: 4
+  n_decoder_layers: 2
+  n_heads: 4
+  dropout: 0.1
+
+hotspot:
+  num_anchors: 5
+  contact_distance_cutoff: 4.0
+
+train:
+  max_iters: 100000
+  val_freq: 2000
+  log_freq: 100
+  ckpt_freq: 5000
+  batch_size: 32
+  num_workers: 4
+  seed: 114514
+  max_grad_norm: 10.0
+  min_rec_length: 10
+  optimizer:
+    lr: 3.e-4
+    weight_decay: 0.0
+    beta1: 0.9
+    beta2: 0.999
+  loss:
+    coord_weight: 1.0
+    aa_weight: 1.0
+    match_metric: ca_l1
+
+dataset:
+  train:
+    structure_dir: ./data/raw/pepbdb/pepbdb/
+    dataset_dir: ./data/processed/pepbdb/
+    name: pep_pocket_train
+    reset: False
+  val:
+    structure_dir: ./data/raw/pepbdb_test/
+    dataset_dir: ./data/processed/pepbdb/
+    name: pep_pocket_test
+    reset: False

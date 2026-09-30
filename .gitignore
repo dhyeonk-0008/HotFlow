@@ -1,0 +1,117 @@
+# ---------------------------------------------------------------------------
+# Upstream repositories (NOT vendored — see README "Setup")
+# Both are MIT-licensed and cloned separately by the user.
+# ---------------------------------------------------------------------------
+/PepFlowww/
+/PepHAR/
+
+# ---------------------------------------------------------------------------
+# Third-party binaries
+# ---------------------------------------------------------------------------
+/tools/
+
+# ---------------------------------------------------------------------------
+# Datasets and preprocessed caches (PepBDB — redistributed by its own source)
+# ---------------------------------------------------------------------------
+/data/
+*.lmdb
+*.lmdb-lock
+
+# ---------------------------------------------------------------------------
+# Training runs, checkpoints, logs
+# ---------------------------------------------------------------------------
+/logs/
+/logs_b/
+/logs_hotspot/
+/wandb/
+*.pt
+*.pth
+*.ckpt
+slurm-*.out
+slurm-*.err
+*.log
+
+# ---------------------------------------------------------------------------
+# Evaluation outputs and generated structures
+# ---------------------------------------------------------------------------
+/results/
+/test_cases/
+/test_cases_600k/
+
+# ---------------------------------------------------------------------------
+# Archives
+# ---------------------------------------------------------------------------
+*.tar.gz
+*.zip
+*.sha256
+
+# ---------------------------------------------------------------------------
+# Upstream papers (copyrighted — link to arXiv in README instead)
+# ---------------------------------------------------------------------------
+pepflow.pdf
+pephar.pdf
+
+# ---------------------------------------------------------------------------
+# Notebooks — exploratory analysis, still carry absolute paths and saved
+# outputs. Excluded until cleaned up.
+# ---------------------------------------------------------------------------
+/notebooks/
+*.ipynb
+
+# ---------------------------------------------------------------------------
+# Agent / editor local state
+# ---------------------------------------------------------------------------
+CLAUDE.md
+/.omc/
+/.omx/
+/memory/
+/.claude/
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+.conda/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing / typing caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Superseded root-level figure copies (the canonical one is docs/architecture.png)
+# ---------------------------------------------------------------------------
+/hotflow_architecture.png
+/hotflow_architecture_preview.png
+/hotflow_pptx_preview.png
+
+# Redundant preview renders
+*_preview.png
+
+# Course project proposal (not part of the public release)
+proposal.tex
+project_proposal.pdf
