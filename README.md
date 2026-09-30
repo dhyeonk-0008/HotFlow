@@ -23,13 +23,25 @@ using the former as a frozen conditioning signal for the latter.
 
 ![HotFlow architecture](docs/architecture.png)
 
-> **Status.** This is research code from a course project, released as a record
-> of the work. The components below are implemented and carry unit tests, which
-> were last run during development. Evaluation is **not** complete: the first test
-> set run used ground-truth-derived anchors at inference time, which does not
-> match the intended de novo protocol, and the corrected run has not been
-> finished. **No benchmark numbers are reported here for that reason.** See
-> [Evaluation status](#evaluation-status).
+<sub>Cross-attention is injected into the last three of PepFlow's six IPA blocks;
+blocks 0–2 stay as pretrained. Figure from the final project presentation.</sub>
+
+> **Status.** Built at KAIST (BS89902) and published here as a record of the
+> work — research code, not a maintained tool. The full pipeline is implemented:
+> data, training, sampling, and a four-method evaluation harness, with unit
+> tests last run during development.
+>
+> **The headline result is negative.** Hotspot conditioning places the peptide in
+> the right pocket and cuts steric clashes, but does not produce peptides that
+> are simultaneously well-formed, correctly posed and engaging the intended
+> residues. The more useful outcomes are the diagnosis of *why* standard metrics
+> obscured this, and the finding that anchor quality — not conditioning capacity
+> — is the binding constraint. See [Findings](#findings).
+>
+> Evaluation is also incomplete: the 179-entry test set run used
+> ground-truth-derived anchors at inference time, which does not match the
+> intended de novo protocol, so those numbers are not reported. The two de novo
+> case studies are unaffected and are reported.
 
 ---
 
@@ -336,22 +348,157 @@ structure rather than the raw generated one:
 Splits: 179 held-out PepBDB chain entries, plus a small set of case-study
 targets for de novo design.
 
-### Evaluation status
+### What is and is not measured here
 
-The numbers this protocol was meant to produce are not in this repository, and
-the reason is worth stating plainly.
+The **179-entry PepBDB test set** results are not reported. Approach A and B
+were meant to be evaluated de novo — anchors predicted by PepHAR from the
+receptor alone — but the one full test set run fed them anchors derived from
+ground-truth peptide contacts instead. That inflates them relative to the
+baselines and does not measure the de novo setting the method claims. Re-running
+with `--ab_anchor_source pephar_denovo` (now the default) is the outstanding
+work. Training-time use of ground-truth anchors is *not* affected — that is the
+intended design, and the trained model does not need to be redone.
 
-Approach A and Approach B were meant to be evaluated de novo — anchors
-predicted by PepHAR from the receptor alone, with no access to the native
-peptide. The first full test set run instead fed both
-methods anchors derived from ground-truth peptide contacts. That inflates them
-relative to the baselines and does not measure the de novo setting the method
-claims, so those results are not reported.
+The **two case studies below are de novo** and are reported. 6LUQ has no native
+peptide at all (`has_gt: False`), and the 9CDZ run explicitly disables GT
+anchors during sampling, using the native peptide only as a reference pose for
+post-hoc metrics.
 
-The training-time use of ground-truth anchors is *not* affected by this — that
-is the intended design, and the trained model does not need to be redone. What
-remains is re-running inference with `--ab_anchor_source pephar_denovo`, which is
-what the current default does.
+---
+
+## Findings
+
+The headline result is negative, and the most useful thing this project produced
+is the diagnosis of *why* the usual metrics did not show it.
+
+### Validity is a misleading headline metric
+
+6LUQ (D2 dopamine receptor), de novo, n = 50 per method, after FastRelax:
+
+| | PepFlow | PepHAR | HotFlow |
+|---|---:|---:|---:|
+| valid | 0.84 | **1.00** | 0.08 |
+| clash-free | 1.00 | 1.00 | 1.00 |
+| Rosetta bind (REU) ↓ | −18.8 | −11.1 | **−19.3** |
+| Rosetta stab (REU) ↓ | 42.7 | **31.3** | 97.8 |
+
+Read naively, PepHAR wins outright and HotFlow collapses. Neither reading
+survives contact with the structures:
+
+- **PepHAR's 100 % is cheap.** Autoregressive placement preserves *local*
+  backbone geometry by construction, so a connected chain is trivially "valid"
+  regardless of whether it binds — and PepHAR binds weakest of the three
+  (−11.1 REU), drifting out of the pocket after relaxation.
+- **HotFlow's 8 % is largely an aggregation artifact.** The threshold is
+  all-or-nothing at 4.5 Å, so roughly one localized CA break zeroes an otherwise
+  intact peptide. The project presentation put HotFlow's per-bond backbone
+  quality at 49 % against PepHAR's 51 % — that figure comes from the
+  presentation analysis and is not reproducible from the metrics shipped here,
+  but the mean CA–CA distances (3.96 Å vs 3.79 Å) are consistent with a
+  localized defect rather than a global collapse.
+- **"Clash-free" is partly a FastRelax artifact.** These are post-relaxation
+  numbers, and relaxation removes most clashes. The presentation reports that
+  raw outputs of all three methods clash; the 9CDZ study below quantifies it
+  (12.7–31.3 mean receptor clashes before relaxation).
+
+**Sequence collapse is not confined to PepHAR.** Glycine fraction across the
+same 50 samples per method, computed from `pred_seq`:
+
+| | PepFlow | PepHAR | HotFlow |
+|---|---:|---:|---:|
+| mean Gly fraction | 0.30 | 0.50 | **0.61** |
+| samples ≥ 50 % Gly | 2/50 | 24/50 | **34/50** |
+
+HotFlow is the *most* Gly-collapsed of the three (e.g. `GGGGGGGGRGIS`), while
+also scoring the best binding energy. So low-complexity sequence and apparent
+binding quality are not in tension here, and the collapse cannot be used to
+dismiss any one method's score — it is a shared failure mode that the
+interface-level metrics do not penalise.
+
+The same structures change rank depending on the threshold, on all-or-nothing
+versus per-bond aggregation, and on whether the metric is computed before or
+after relaxation.
+
+### Hotspot information does not guarantee better binding
+
+PepHAR carries an explicit hotspot density and still binds weakest. PepFlow's
+strong RMSD and sequence recovery on the held-out set largely reflect
+reconstruction of the native peptide rather than de novo physical reasoning.
+Neither demonstrates a hotspot-driven affinity gain.
+
+This also means generator effects and inductive-bias effects have to be
+separated before either can be credited: PepHAR's diversity comes from
+autoregression, and PepFlow's RMSD from ground-truth recovery. Both are
+properties of the generator, independent of whether hotspots help.
+
+### MDM2 follow-up
+
+9CDZ (MDM2), held out from training, de novo, n = 20 per method, native 16-mer
+used only as a reference pose. After FastRelax:
+
+| | mean iRMSD (Å) ↓ | mean overlap ↑ | clash-free | strict pass |
+|---|---:|---:|---:|---:|
+| PepFlow | 6.87 | **0.644** | 1.00 | 0.00 |
+| PepHAR | 6.49 | 0.455 | 0.95 | 0.05 |
+| HotFlow | **5.92** | 0.594 | 1.00 | 0.05 |
+
+Strict pass: `valid & iRMSD < 6 Å & receptor_clashes < 10 & overlap > 0.75`.
+
+FastRelax removed nearly all steric clashes, but the relaxed designs still did
+not recover the native MDM2 binding mode. HotFlow achieved the best mean iRMSD
+and, before relaxation, far fewer receptor clashes than either baseline (12.7 vs
+31.3 and 25.9), yet only one sample in twenty passed the strict filter — as did
+PepHAR, and none of PepFlow's.
+
+Measured against the native hotspot positions, HotFlow was in fact the *worst*
+of the three at hotspot-level alignment: it contacted 0.35 of the native hotspot
+positions, against 0.58 for PepFlow and 0.68 for PepHAR. The PepHAR-derived
+anchors placed the peptide in the right pocket but not on the right residues.
+
+### The anchor source is the binding constraint
+
+The same target run with ground-truth anchors instead of PepHAR-predicted ones
+isolates the cost of that mismatch. Both rows below are pre-relaxation, so they
+are directly comparable:
+
+| HotFlow on 9CDZ | n | mean iRMSD (Å) ↓ | mean overlap ↑ | mean receptor clashes ↓ | strict pass ↑ |
+|---|---:|---:|---:|---:|---:|
+| GT anchors *(optimistic, not de novo)* | 50 | 5.58 | 0.815 | 11.1 | **0.42** |
+| PepHAR de novo anchors | 20 | 6.60 | 0.826 | 12.7 | **0.00** |
+
+Swapping only the anchor source takes the strict-pass rate from 42 % to zero
+while binding-site overlap and clash count barely move. The cross-attention
+machinery can exploit good anchors; PepHAR's de novo predictions are not yet
+good enough to supply them. The GT-anchor row is *not* a de novo result and is
+shown only to locate the bottleneck.
+
+### Interpretation
+
+Hotspot conditioning delivers a real but narrow benefit: it places the peptide
+in the intended pocket and substantially reduces steric clashes relative to
+PepFlow. It does not deliver a peptide that is simultaneously well-formed,
+correctly posed, and engaging the intended residues.
+
+Three distinct failures stack up, and separating them is the main thing this
+project established:
+
+1. **Anchor quality.** The train/inference mismatch is not a technicality — it
+   is the dominant term. HotFlow trains on clean ground-truth contacts and then
+   runs on PepHAR predictions that are accurate enough for pocket placement but
+   not for residue-level alignment. The 42 % → 0 % drop above is the cost.
+2. **Geometry.** Conditioning steers *where* the peptide engages but supplies no
+   pressure toward a chemically valid backbone, so in a tight pocket the model
+   satisfies the anchors by straining the chain (the 6LUQ result above).
+3. **Sequence.** All three methods drift toward low-complexity glycine-rich
+   sequences, HotFlow most of all, and none of the interface metrics penalise
+   it. Any future comparison needs a sequence-quality term, or it will keep
+   scoring poly-Gly chains as successes.
+
+Hotspot information alone is therefore insufficient for chemically robust,
+strongly binding designs. The direction still looks worth pursuing — with good
+anchors the conditioning clearly works — but the next step is a better hotspot
+predictor and explicit geometric inductive biases in the generator, not more
+cross-attention capacity.
 
 ---
 
@@ -385,7 +532,7 @@ hotflow/
 patches/       upstream modifications, applied by scripts/setup_upstream.sh
 scripts/       upstream setup, target download, Slurm job scripts
 tests/         unit tests
-docs/          architecture figure and the script that generates it
+docs/          architecture figure; an earlier schematic and its generator
 ```
 
 ### Configs

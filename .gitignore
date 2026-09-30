@@ -115,3 +115,10 @@ Thumbs.db
 # Course project proposal (not part of the public release)
 proposal.tex
 project_proposal.pdf
+
+# Presentation sources (large; the slide render lives in docs/architecture.png)
+*.pptx
+!docs/schematic.pptx
+
+# Cluster job outputs / scratch renders
+/runs/

@@ -1,5 +1,5 @@
 """
-HotFlow Architecture Figure – python-pptx native shapes, v4.
+HotFlow schematic (earlier alternative to docs/architecture.png).
 Correct data flow: Receptor Features → GAEncoderCrossAttn (not HotspotEncoder).
 """
 import os
@@ -296,6 +296,6 @@ add_arrow(10.8, 7.75, 10.05, 7.75, '#AAAAAA', Pt(1.2))
 # ══════════════════════════════════════════════
 # SAVE
 # ══════════════════════════════════════════════
-pptx_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'architecture.pptx')
+pptx_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'schematic.pptx')
 prs.save(pptx_path)
 print(f"Saved: {pptx_path}")
